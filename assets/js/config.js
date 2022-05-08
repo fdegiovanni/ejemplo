@@ -6,7 +6,7 @@ const config = {
     height: 600,
     scene: [Game],
     physics: {
-        default: 'matter',
+        default: 'arcade',
     },
 };
 
