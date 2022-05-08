@@ -119,6 +119,10 @@ export default class Game extends Phaser.Scene {
             { font: '20px monospace', fill: '#fff', align: 'center' }
         );
 
+
+        this.cursors = this.input.keyboard.createCursorKeys(); // Permite capturar los eventos del teclado
+        this.keyZ = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
+
     }
 
     /*
@@ -127,5 +131,38 @@ export default class Game extends Phaser.Scene {
     */
     update() {
         this.sea.tilePositionY -= 0.12; // le damos al fondo un movimiento contrario al avance del personaje
+
+        // Contolar al player con las arrows keys
+        this.player.body.velocity.x = 0;
+        this.player.body.velocity.y = 0;
+
+        if (this.cursors.left.isDown) {
+            this.player.body.velocity.x = -this.player.speed;
+        } else if (this.cursors.right.isDown) {
+            this.player.body.velocity.x = this.player.speed;
+        }
+
+        if (this.cursors.up.isDown) {
+            this.player.body.velocity.y = -this.player.speed;
+        } else if (this.cursors.down.isDown) {
+            this.player.body.velocity.y = this.player.speed;
+        }
+
+        // Contolar al player via mouse/pointer
+        if (this.input.activePointer.isDown &&
+            Phaser.Math.Distance.Between(this.input.activePointer.worldX, this.input.activePointer.worldY, this.player.x, this.player.y) > 15) {
+            this.physics.moveTo(this.player, this.input.activePointer.worldX, this.input.activePointer.worldY, 300);
+        }
+
+        // Permitir al player disparar: con la Z o con el clic
+        if (this.keyZ.isDown || this.input.activePointer.isDown) {
+            // Si el juego termino cerrarlo, sino disparar
+            if (this.returnText && this.returnText.exists) {
+                // cerrar el juego
+            } else {
+                // disparar
+            }
+        }
     }
+
 }
