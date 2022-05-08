@@ -52,7 +52,7 @@ export default class Game extends Phaser.Scene {
         */
         this.enemies = this.physics.add.group();
         this.enemies.createMultiple({
-            classType: Phaser.GameObjects.Sprite,
+            classType: Phaser.Physics.Arcade.Sprite,
             key: 'greenEnemy',
             frame: 0,
             visible: true,
@@ -75,10 +75,10 @@ export default class Game extends Phaser.Scene {
         */
         this.enemiesBullets = this.physics.add.group();
         this.enemiesBullets.createMultiple({
-            classType: Phaser.GameObjects.Sprite,
+            classType: Phaser.Physics.Arcade.Sprite,
             key: 'enemyBullet',
             frame: 0,
-            visible: true,
+            visible: false,
             active: true,
             repeat: 100,
             setXY: {
@@ -92,21 +92,31 @@ export default class Game extends Phaser.Scene {
         */
         this.bullets = this.physics.add.group();
         this.bullets.createMultiple({
-            classType: Phaser.GameObjects.Sprite,
+            classType: Phaser.Physics.Arcade.Sprite,
             key: 'bullet',
             frame: 0,
-            visible: true,
+            visible: false,
             active: true,
             repeat: 100,
             setXY: {
-                x: 600,
+                x: 400,
                 y: 550,
             }
         });
+        this.bullets.children.entries.forEach((bullet) => {
+            bullet.setCollideWorldBounds(true);
+            bullet.body.onWorldBounds = true;
+            bullet.body.world.on('worldbounds', function (body) {
+                if (body.gameObject === this) {
+                    this.setActive(false);
+                    this.setVisible(false);
+                }
+            }, bullet);
+        });
 
         // Mostrar instrucciones en la pantalla
-        this.instructions = this.add.text(80, 450,
-            'Usa las Arrow Keys para mover, Presiona Z para disparar\n' +
+        this.instructions = this.add.text(40, 450,
+            'Usa las Arrow Keys para mover, Presiona ESPACIO para disparar\n' +
             'Tapea/cliquea para hacer ambas',
             { font: '20px monospace', fill: '#fff', align: 'center' }
         );
@@ -121,7 +131,6 @@ export default class Game extends Phaser.Scene {
 
 
         this.cursors = this.input.keyboard.createCursorKeys(); // Permite capturar los eventos del teclado
-        this.keyZ = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
 
     }
 
@@ -155,12 +164,12 @@ export default class Game extends Phaser.Scene {
         }
 
         // Permitir al player disparar: con la Z o con el clic
-        if (this.keyZ.isDown || this.input.activePointer.isDown) {
+        if (this.cursors.space.isDown || this.input.activePointer.isDown) {
             // Si el juego termino cerrarlo, sino disparar
             if (this.returnText && this.returnText.exists) {
                 // cerrar el juego
             } else {
-                // disparar
+                this.player.fire();
             }
         }
     }
