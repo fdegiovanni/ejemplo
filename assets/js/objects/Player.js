@@ -31,10 +31,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
             if (this.scene.bullets.countActive() === 0) {
                 return;
             }
-            console.log(this.scene.bullets)
             bullet = this.scene.bullets.getFirstAlive();
             bullet.visible = true;
-            console.log(bullet)
             bullet.body.reset(this.x, this.y - 20)
             bullet.body.velocity.y = -500;
         } else {
