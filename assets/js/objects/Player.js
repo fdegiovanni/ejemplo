@@ -28,6 +28,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         }
 
         this.nextShotAt = this.scene.time.now + this.shotDelay;
+        this.scene.playerFireSFX.play();
 
         let bullet;
         if (this.weaponLevel === 0) {

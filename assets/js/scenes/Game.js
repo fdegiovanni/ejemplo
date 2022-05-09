@@ -21,6 +21,13 @@ export default class Game extends Phaser.Scene {
         this.load.spritesheet('boss', '../../assets/images/boss.png', { frameWidth: 93, frameHeight: 75 }); // precarga de secuencia de imagenes de boss
         this.load.spritesheet('explosion', '../../assets/images/explosion.png', { frameWidth: 32, frameHeight: 32 }); // precarga de secuencia de imagenes de explosion
         this.load.spritesheet('player', '../../assets/images/player.png', { frameWidth: 64, frameHeight: 64 }); // precarga de secuencia de imagenes del personaje
+
+        this.load.audio('explosion', '../../assets/sounds/explosion.ogg');
+        this.load.audio('playerExplosion', '../../assets/sounds/player-explosion.ogg');
+        this.load.audio('enemyFire', '../../assets/sounds/enemy-fire.ogg');
+        this.load.audio('playerFire', '../../assets/sounds/player-fire.ogg');
+        this.load.audio('fly', '../../assets/sounds/fly.wav');
+        this.load.audio('powerUp', '../../assets/sounds/powerup.ogg');
     }
 
     /*
@@ -270,6 +277,7 @@ export default class Game extends Phaser.Scene {
 
         this.physics.add.overlap(this.player, this.enemiesBullets, this.hitPlayer, null, this);
 
+        this.setupAudio();
     }
 
     /*
@@ -283,25 +291,25 @@ export default class Game extends Phaser.Scene {
         if (this.player.body) {
             this.player.body.velocity.x = 0;
             this.player.body.velocity.y = 0;
-    
+
             if (this.cursors.left.isDown) {
                 this.player.body.velocity.x = -this.player.speed;
             } else if (this.cursors.right.isDown) {
                 this.player.body.velocity.x = this.player.speed;
             }
-    
+
             if (this.cursors.up.isDown) {
                 this.player.body.velocity.y = -this.player.speed;
             } else if (this.cursors.down.isDown) {
                 this.player.body.velocity.y = this.player.speed;
             }
-    
+
             // Contolar al player via mouse/pointer
             if (this.input.activePointer.isDown &&
                 Phaser.Math.Distance.Between(this.input.activePointer.worldX, this.input.activePointer.worldY, this.player.x, this.player.y) > 15) {
                 this.physics.moveTo(this.player, this.input.activePointer.worldX, this.input.activePointer.worldY, 300);
             }
-    
+
             // Permitir al player disparar: con la SPACE o con el clic
             if (this.cursors.space.isDown || this.input.activePointer.isDown) {
                 // Si el juego termino cerrarlo, sino disparar
@@ -312,7 +320,7 @@ export default class Game extends Phaser.Scene {
                 }
             }
         }
-       
+
 
 
         this.enemyManager.spawn();
@@ -320,12 +328,13 @@ export default class Game extends Phaser.Scene {
 
         if (this.instructions && this.time.now > this.instructionsExpire) {
             this.instructions.destroy();
-          }
+        }
     }
 
     hitPlayer(player, enemy) {
         console.log('ouch')
 
+        this.playerExplosionSFX.play();
 
         if (enemy.data?.alive) {
             this.damageEnemy(enemy, 5);
@@ -340,19 +349,19 @@ export default class Game extends Phaser.Scene {
             this.player.weaponLevel = 0;
             this.player.play('ghost');
             const life = this.lives.getFirstAlive();
-            if(life !== null){
+            if (life !== null) {
                 life.visible = false
                 life.active = false;
                 this.lives.kill(life);
                 console.log('se quita corazon')
             }
-            
+
         } else {
             // matar al personaje
             player.setActive(false);
             player.setVisible(false);
             this.explode(player)
-            this.sea.destroy();    
+            this.sea.destroy();
         }
 
 
@@ -369,20 +378,38 @@ export default class Game extends Phaser.Scene {
             enemy.play(`hit-${enemy.data.type}`);
         } else {
             this.explode(enemy);
+            this.explosionSFX.play();
+            this.addToScore(enemy.data.reward);
         }
     }
 
     explode(sprite) {
         if (this.explosions.countActive(false) === 0) {
-          return;
+            return;
         }
         var explosion = this.explosions.getFirstDead();
         explosion.setActive(true).setVisible(true).body.reset(sprite.x, sprite.y);
         explosion.play('boom', 15, false, true);
-    
+
         // Se le da a la explosion la direccion del objeto
         explosion.body.velocity.x = sprite.body.velocity.x;
         explosion.body.velocity.y = sprite.body.velocity.y;
-      }
+    }
 
+    addToScore(score) {
+        this.score += score;
+        this.scoreText.text = this.score;
+    }
+
+    setupAudio() {
+        this.sound.volume = 0.3;
+        this.sound.add('fly', {
+            volume: 1.5,
+            loop: true,
+        }).play();
+        this.explosionSFX = this.sound.add('explosion');
+        this.playerExplosionSFX = this.sound.add('playerExplosion');
+        this.enemyFireSFX = this.sound.add('enemyFire');
+        this.playerFireSFX = this.sound.add('playerFire');
+    }
 }
