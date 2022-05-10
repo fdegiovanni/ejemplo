@@ -57,6 +57,7 @@ export default class EnemyManager {
                 const bullet = this.scene.enemiesBullets.getFirstDead();
                 bullet.setActive(true).setVisible(true).body.reset(enemy.x, enemy.y);
                 this.scene.physics.moveToObject(bullet, this.scene.player, 150);
+                this.scene.enemyFireSFX.play();
                 enemy.nextShotAt = this.scene.time.now + 2000;
             }
         }, this.scene);
