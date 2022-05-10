@@ -52,7 +52,7 @@ export default class Game extends Phaser.Scene {
         */
         this.enemies = this.physics.add.group();
         this.enemies.createMultiple({
-            classType: Phaser.GameObjects.Sprite,
+            classType: Phaser.Physics.Arcade.Sprite,
             key: 'greenEnemy',
             frame: 0,
             visible: true,
@@ -75,10 +75,10 @@ export default class Game extends Phaser.Scene {
         */
         this.enemiesBullets = this.physics.add.group();
         this.enemiesBullets.createMultiple({
-            classType: Phaser.GameObjects.Sprite,
+            classType: Phaser.Physics.Arcade.Sprite,
             key: 'enemyBullet',
             frame: 0,
-            visible: true,
+            visible: false,
             active: true,
             repeat: 100,
             setXY: {
@@ -92,21 +92,31 @@ export default class Game extends Phaser.Scene {
         */
         this.bullets = this.physics.add.group();
         this.bullets.createMultiple({
-            classType: Phaser.GameObjects.Sprite,
+            classType: Phaser.Physics.Arcade.Sprite,
             key: 'bullet',
             frame: 0,
-            visible: true,
+            visible: false,
             active: true,
             repeat: 100,
             setXY: {
-                x: 600,
+                x: 400,
                 y: 550,
             }
         });
+        this.bullets.children.entries.forEach((bullet) => {
+            bullet.setCollideWorldBounds(true);
+            bullet.body.onWorldBounds = true;
+            bullet.body.world.on('worldbounds', function (body) {
+                if (body.gameObject === this) {
+                    this.setActive(false);
+                    this.setVisible(false);
+                }
+            }, bullet);
+        });
 
         // Mostrar instrucciones en la pantalla
-        this.instructions = this.add.text(80, 450,
-            'Usa las Arrow Keys para mover, Presiona Z para disparar\n' +
+        this.instructions = this.add.text(40, 450,
+            'Usa las Arrow Keys para mover, Presiona ESPACIO para disparar\n' +
             'Tapea/cliquea para hacer ambas',
             { font: '20px monospace', fill: '#fff', align: 'center' }
         );
@@ -119,6 +129,9 @@ export default class Game extends Phaser.Scene {
             { font: '20px monospace', fill: '#fff', align: 'center' }
         );
 
+
+        this.cursors = this.input.keyboard.createCursorKeys(); // Permite capturar los eventos del teclado
+
     }
 
     /*
@@ -127,5 +140,38 @@ export default class Game extends Phaser.Scene {
     */
     update() {
         this.sea.tilePositionY -= 0.12; // le damos al fondo un movimiento contrario al avance del personaje
+
+        // Contolar al player con las arrows keys
+        this.player.body.velocity.x = 0;
+        this.player.body.velocity.y = 0;
+
+        if (this.cursors.left.isDown) {
+            this.player.body.velocity.x = -this.player.speed;
+        } else if (this.cursors.right.isDown) {
+            this.player.body.velocity.x = this.player.speed;
+        }
+
+        if (this.cursors.up.isDown) {
+            this.player.body.velocity.y = -this.player.speed;
+        } else if (this.cursors.down.isDown) {
+            this.player.body.velocity.y = this.player.speed;
+        }
+
+        // Contolar al player via mouse/pointer
+        if (this.input.activePointer.isDown &&
+            Phaser.Math.Distance.Between(this.input.activePointer.worldX, this.input.activePointer.worldY, this.player.x, this.player.y) > 15) {
+            this.physics.moveTo(this.player, this.input.activePointer.worldX, this.input.activePointer.worldY, 300);
+        }
+
+        // Permitir al player disparar: con la Z o con el clic
+        if (this.cursors.space.isDown || this.input.activePointer.isDown) {
+            // Si el juego termino cerrarlo, sino disparar
+            if (this.returnText && this.returnText.exists) {
+                // cerrar el juego
+            } else {
+                this.player.fire();
+            }
+        }
     }
+
 }
