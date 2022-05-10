@@ -4,17 +4,20 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
         super(scene, x, y, 'player');
         this.play('fly');
-        scene.add.existing(this);
-        scene.physics.add.existing(this);
+        this.scene = scene;
+        this.scene.add.existing(this);
+        this.scene.physics.add.existing(this);
 
         this.speed = 300;
+        this.enableBody = true;
         this.setCollideWorldBounds(true);
         this.body.onWorldBounds = true;
+        this.body.onOverlap = true;
         this.body.setSize(20, 20, 0, -5);
         this.weaponLevel = 0;
         this.nextShotAt = 0;
-        this.shotDelay = 100;
-        this.scene = scene;
+        this.shotDelay = 400;
+        this.lives = 3;
     }
 
     fire() {
@@ -28,26 +31,25 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
         let bullet;
         if (this.weaponLevel === 0) {
-            if (this.scene.bullets.countActive() === 0) {
+            if (this.scene.bullets.countActive(false)=== 0) {
                 return;
             }
-            bullet = this.scene.bullets.getFirstAlive();
-            bullet.visible = true;
-            bullet.body.reset(this.x, this.y - 20)
+            bullet = this.scene.bullets.getFirstDead();
+            bullet.setActive(true).setVisible(true).body.reset(this.x, this.y - 20)
             bullet.body.velocity.y = -500;
         } else {
-            if (this.scene.bullets.countDead() < this.weaponLevel * 2) {
+            if (this.scene.bullets.countActive(false) < this.weaponLevel * 2) {
                 return;
             }
             for (var i = 0; i < this.weaponLevel; i++) {
-                bullet = this.bulletPool.getFirstExists(false);
-                bullet.reset(this.x - (10 + i * 6), this.y - 20);
+                bullet = this.scene.bullets.getFirstDead();
+                bullet.body.reset(this.x - (10 + i * 6), this.y - 20);
                 this.physics.velocityFromAngle(
                     -95 - i * 10, 500, bullet.body.velocity
                 );
 
-                bullet = this.scene.bullets.getFirstExists(false);
-                bullet.reset(this.x + (10 + i * 6), this.y - 20);
+                bullet = this.scene.bullets.getFirstDead();
+                bullet.body.reset(this.x + (10 + i * 6), this.y - 20);
                 this.physics.velocityFromAngle(
                     -85 + i * 10, 500, bullet.body.velocity
                 );

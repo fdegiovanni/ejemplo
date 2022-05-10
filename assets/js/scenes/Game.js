@@ -54,6 +54,37 @@ export default class Game extends Phaser.Scene {
             repeat: -1
         });
 
+        // se crea la animacion "hit" con el sprite del enemy Green
+        this.anims.create({
+            key: 'hit-greenEnemy',
+            frames: this.anims.generateFrameNumbers('greenEnemy', [3, 1, 3, 2]),
+            frameRate: 20,
+            repeat: 0
+        });
+
+        // se crea la animacion "hit" con el sprite del enemy White
+        this.anims.create({
+            key: 'hit-whiteEnemy',
+            frames: this.anims.generateFrameNumbers('whiteEnemy', [3, 1, 3, 2]),
+            frameRate: 20,
+            repeat: 0
+        });
+
+        // se crea la animacion "ghost" con el sprite del player
+        this.anims.create({
+            key: 'ghost',
+            frames: this.anims.generateFrameNumbers('player', [3, 0, 3, 1]),
+            frameRate: 20,
+            repeat: true
+        });
+
+        // se crea la animacion de una explosion
+        this.anims.create({
+            key: 'boom',
+            frames: this.anims.generateFrameNumbers('explosion'),
+            repeat: false
+        });
+
         this.player = new Player(this, 400, 550); // renderizacion del player
 
         /*
@@ -81,7 +112,10 @@ export default class Game extends Phaser.Scene {
                 reward: 100,
                 dropRate: 0.3,
                 health: 2,
+                type: 'greenEnemy',
+                alive: true,
             }
+            enemy.body.enable = true;
             enemy.setCollideWorldBounds(true);
             enemy.body.onWorldBounds = true;
             enemy.body.world.on('worldbounds', function (body) {
@@ -112,6 +146,8 @@ export default class Game extends Phaser.Scene {
                 reward: 400,
                 dropRate: 0.5,
                 health: 5,
+                type: 'whiteEnemy',
+                alive: true,
             }
             shooter.setCollideWorldBounds(true);
             shooter.body.onWorldBounds = true;
@@ -161,7 +197,7 @@ export default class Game extends Phaser.Scene {
             key: 'bullet',
             frame: 0,
             visible: false,
-            active: true,
+            active: false,
             repeat: 100,
             setXY: {
                 x: 400,
@@ -179,13 +215,39 @@ export default class Game extends Phaser.Scene {
             }, bullet);
         });
 
+        this.explosions = this.physics.add.group();
+        this.explosions.createMultiple({
+            classType: Phaser.Physics.Arcade.Sprite,
+            key: 'explosion',
+            frame: 0,
+            visible: false,
+            active: false,
+            repeat: 100,
+            setXY: {
+                x: 400,
+                y: 300,
+            }
+        });
+
+        // Mostrar vidas del jugador
+        this.lives = this.add.group();
+        const firstLifeIconX = 800 - 10 - (3 * 30);
+        for (let i = 0; i < 3; i++) {
+            const life = this.lives.create(firstLifeIconX + (30 * i), 30, 'player');
+            //life.body.setSize(10, 10, 0, -5)
+            life.displayWidth = 30;
+
+            // extra line to scale the image proportional
+            life.scaleY = life.scaleX;
+        }
+
         // Mostrar instrucciones en la pantalla
         this.instructions = this.add.text(40, 450,
             'Usa las Arrow Keys para mover, Presiona ESPACIO para disparar\n' +
             'Tapea/cliquea para hacer ambas',
             { font: '20px monospace', fill: '#fff', align: 'center' }
         );
-        this.instExpire = this.time.now + 450;
+        this.instructionsExpire = this.time.now + 2500;
 
         // Mostrar puntaje en la mantalla
         this.score = 0;
@@ -197,7 +259,17 @@ export default class Game extends Phaser.Scene {
 
         this.cursors = this.input.keyboard.createCursorKeys(); // Permite capturar los eventos del teclado
 
-        this.enemyManager = new EnemyManager(this);
+        this.enemyManager = new EnemyManager(this); // Manejador de todo lo relacionado con los enemigos
+
+        // Colisiones y overlaps
+        this.physics.add.overlap(this.bullets, this.enemies, this.hitEnemy, null, this);
+        this.physics.add.overlap(this.bullets, this.shooters, this.hitEnemy, null, this);
+
+        this.physics.add.overlap(this.player, this.enemies, this.hitPlayer, null, this);
+        this.physics.add.overlap(this.player, this.shooters, this.hitPlayer, null, this);
+
+        this.physics.add.overlap(this.player, this.enemiesBullets, this.hitPlayer, null, this);
+
     }
 
     /*
@@ -208,40 +280,109 @@ export default class Game extends Phaser.Scene {
         this.sea.tilePositionY -= 0.12; // le damos al fondo un movimiento contrario al avance del personaje
 
         // Contolar al player con las arrows keys
-        this.player.body.velocity.x = 0;
-        this.player.body.velocity.y = 0;
-
-        if (this.cursors.left.isDown) {
-            this.player.body.velocity.x = -this.player.speed;
-        } else if (this.cursors.right.isDown) {
-            this.player.body.velocity.x = this.player.speed;
-        }
-
-        if (this.cursors.up.isDown) {
-            this.player.body.velocity.y = -this.player.speed;
-        } else if (this.cursors.down.isDown) {
-            this.player.body.velocity.y = this.player.speed;
-        }
-
-        // Contolar al player via mouse/pointer
-        if (this.input.activePointer.isDown &&
-            Phaser.Math.Distance.Between(this.input.activePointer.worldX, this.input.activePointer.worldY, this.player.x, this.player.y) > 15) {
-            this.physics.moveTo(this.player, this.input.activePointer.worldX, this.input.activePointer.worldY, 300);
-        }
-
-        // Permitir al player disparar: con la Z o con el clic
-        if (this.cursors.space.isDown || this.input.activePointer.isDown) {
-            // Si el juego termino cerrarlo, sino disparar
-            if (this.returnText && this.returnText.exists) {
-                // cerrar el juego
-            } else {
-                this.player.fire();
+        if (this.player.body) {
+            this.player.body.velocity.x = 0;
+            this.player.body.velocity.y = 0;
+    
+            if (this.cursors.left.isDown) {
+                this.player.body.velocity.x = -this.player.speed;
+            } else if (this.cursors.right.isDown) {
+                this.player.body.velocity.x = this.player.speed;
+            }
+    
+            if (this.cursors.up.isDown) {
+                this.player.body.velocity.y = -this.player.speed;
+            } else if (this.cursors.down.isDown) {
+                this.player.body.velocity.y = this.player.speed;
+            }
+    
+            // Contolar al player via mouse/pointer
+            if (this.input.activePointer.isDown &&
+                Phaser.Math.Distance.Between(this.input.activePointer.worldX, this.input.activePointer.worldY, this.player.x, this.player.y) > 15) {
+                this.physics.moveTo(this.player, this.input.activePointer.worldX, this.input.activePointer.worldY, 300);
+            }
+    
+            // Permitir al player disparar: con la SPACE o con el clic
+            if (this.cursors.space.isDown || this.input.activePointer.isDown) {
+                // Si el juego termino cerrarlo, sino disparar
+                if (this.returnText && this.returnText.exists) {
+                    // cerrar el juego
+                } else {
+                    this.player.fire();
+                }
             }
         }
+       
 
-        
+
         this.enemyManager.spawn();
         this.enemyManager.fire();
+
+        if (this.instructions && this.time.now > this.instructionsExpire) {
+            this.instructions.destroy();
+          }
     }
+
+    hitPlayer(player, enemy) {
+        console.log('ouch')
+
+
+        if (enemy.data?.alive) {
+            this.damageEnemy(enemy, 5);
+        } else {
+            enemy.active = false;
+            enemy.visible = false;
+        }
+
+        if (this.player.lives >= 0) {
+            console.log('le dieron al player')
+            this.player.lives--;
+            this.player.weaponLevel = 0;
+            this.player.play('ghost');
+            const life = this.lives.getFirstAlive();
+            if(life !== null){
+                life.visible = false
+                life.active = false;
+                this.lives.kill(life);
+                console.log('se quita corazon')
+            }
+            
+        } else {
+            // matar al personaje
+            player.setActive(false);
+            player.setVisible(false);
+            this.explode(player)
+            this.sea.destroy();    
+        }
+
+
+    }
+
+    hitEnemy(bullet, enemy) {
+        bullet.setActive(false);
+        this.damageEnemy(enemy, 1);
+    }
+
+    damageEnemy(enemy, damage) {
+        enemy.damage(enemy, damage);
+        if (enemy.data.alive) {
+            enemy.play(`hit-${enemy.data.type}`);
+        } else {
+            this.explode(enemy);
+        }
+    }
+
+    explode(sprite) {
+        if (this.explosions.countActive(false) === 0) {
+          return;
+        }
+        var explosion = this.explosions.getFirstDead();
+        explosion.setActive(true).setVisible(true).body.reset(sprite.x, sprite.y);
+        explosion.play('boom', 15, false, true);
+    
+        // Se le da a la explosion la direccion del objeto
+        explosion.body.velocity.x = sprite.body.velocity.x;
+        explosion.body.velocity.y = sprite.body.velocity.y;
+      }
 
 }
