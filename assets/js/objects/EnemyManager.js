@@ -17,9 +17,9 @@ export default class EnemyManager {
             enemy.play('fly-greenEnemy');
 
             enemy.damage = (enemy, points) => {
-                enemy.data.health -= points;
-                enemy.data.alive = enemy.data.health > 0;
-                if(!enemy.data.alive) enemy.setActive(false).setVisible(false);
+                enemy.health -= points;
+                enemy.alive = enemy.health > 0;
+                if(!enemy.alive) enemy.setActive(false).setVisible(false);
                 return;
             }
             // console.log('enemy', enemy);
@@ -39,9 +39,9 @@ export default class EnemyManager {
             shooter.play('fly-whiteEnemy');
 
             shooter.damage = (shooter, points) => {
-                shooter.data.health -= points;
-                shooter.data.alive = shooter.data.health > 0;
-                if(!shooter.data.alive) shooter.setActive(false).setVisible(false);
+                shooter.health -= points;
+                shooter.alive = shooter.health > 0;
+                if(!shooter.alive) shooter.setActive(false).setVisible(false);
                 return;
             }
 

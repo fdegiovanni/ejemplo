@@ -4,6 +4,7 @@ import Player from '../objects/Player.js';
 export default class Game extends Phaser.Scene {
     constructor() {
         super('Game');
+        this.gameOverStatus = false;
     }
 
     /*
@@ -115,13 +116,13 @@ export default class Game extends Phaser.Scene {
         // console.log(this.enemies.children);
 
         this.enemies.children.entries.forEach((enemy) => {
-            enemy.data = {
-                reward: 100,
-                dropRate: 0.3,
-                health: 2,
-                type: 'greenEnemy',
-                alive: true,
-            }
+            enemy.reward = 100;
+            enemy.dropRate = 0.3;
+            enemy.health = 2;
+            enemy.type = 'greenEnemy';
+            enemy.alive = true;
+            
+
             enemy.body.enable = true;
             enemy.setCollideWorldBounds(true);
             enemy.body.onWorldBounds = true;
@@ -149,13 +150,13 @@ export default class Game extends Phaser.Scene {
         });
 
         this.shooters.children.entries.forEach((shooter) => {
-            shooter.data = {
-                reward: 400,
-                dropRate: 0.5,
-                health: 5,
-                type: 'whiteEnemy',
-                alive: true,
-            }
+            
+            shooter.reward = 400;
+            shooter.dropRate = 0.5;
+            shooter.health = 5;
+            shooter.type = 'whiteEnemy';
+            shooter.alive = true;
+            
             shooter.setCollideWorldBounds(true);
             shooter.body.onWorldBounds = true;
             shooter.body.world.on('worldbounds', function (body) {
@@ -285,6 +286,10 @@ export default class Game extends Phaser.Scene {
         Sirve para actualizar los componentes. Da dinamismo.
     */
     update() {
+        if(this.gameOverStatus) {
+            return;
+        }
+        
         this.sea.tilePositionY -= 0.12; // le damos al fondo un movimiento contrario al avance del personaje
 
         // Contolar al player con las arrows keys
@@ -336,7 +341,7 @@ export default class Game extends Phaser.Scene {
 
         this.playerExplosionSFX.play();
 
-        if (enemy.data?.alive) {
+        if (enemy?.alive) {
             this.damageEnemy(enemy, 5);
         } else {
             enemy.active = false;
@@ -358,10 +363,8 @@ export default class Game extends Phaser.Scene {
 
         } else {
             // matar al personaje
-            player.setActive(false);
-            player.setVisible(false);
-            this.explode(player)
-            this.sea.destroy();
+            this.explode(player);
+            this.gameOver();
         }
 
 
@@ -374,12 +377,12 @@ export default class Game extends Phaser.Scene {
 
     damageEnemy(enemy, damage) {
         enemy.damage(enemy, damage);
-        if (enemy.data.alive) {
-            enemy.play(`hit-${enemy.data.type}`);
+        if (enemy?.alive) {
+            enemy.play(`hit-${enemy.type}`);
         } else {
             this.explode(enemy);
             this.explosionSFX.play();
-            this.addToScore(enemy.data.reward);
+            this.addToScore(enemy.reward);
         }
     }
 
@@ -411,5 +414,11 @@ export default class Game extends Phaser.Scene {
         this.playerExplosionSFX = this.sound.add('playerExplosion');
         this.enemyFireSFX = this.sound.add('enemyFire');
         this.playerFireSFX = this.sound.add('playerFire');
+    }
+
+    gameOver() {     
+        this.sound.stopAll(); 
+        setTimeout(() => this.scene.start('GameOver'), 1200);   
+        
     }
 }
