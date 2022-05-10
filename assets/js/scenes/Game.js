@@ -86,7 +86,7 @@ export default class Game extends Phaser.Scene {
                 y: 300,
             }
         });
-        
+
         /*
             Las bullets del player son muchas, por lo que vamos a utilizar un grupo para tenerlas
         */
@@ -103,6 +103,21 @@ export default class Game extends Phaser.Scene {
                 y: 550,
             }
         });
+
+        // Mostrar instrucciones en la pantalla
+        this.instructions = this.add.text(80, 450,
+            'Usa las Arrow Keys para mover, Presiona Z para disparar\n' +
+            'Tapea/cliquea para hacer ambas',
+            { font: '20px monospace', fill: '#fff', align: 'center' }
+        );
+        this.instExpire = this.time.now + 450;
+
+        // Mostrar puntaje en la mantalla
+        this.score = 0;
+        this.scoreText = this.add.text(
+            400, 30, '' + this.score,
+            { font: '20px monospace', fill: '#fff', align: 'center' }
+        );
 
     }
 
