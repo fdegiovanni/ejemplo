@@ -1,3 +1,4 @@
+import EnemyManager from '../objects/EnemyManager.js';
 import Player from '../objects/Player.js';
 
 export default class Game extends Phaser.Scene {
@@ -37,10 +38,18 @@ export default class Game extends Phaser.Scene {
             repeat: -1
         });
 
-        // se crea la animacion "fly" con el sprite del enemyGreen
+        // se crea la animacion "fly" con el sprite del enemy Green
         this.anims.create({
             key: 'fly-greenEnemy',
             frames: this.anims.generateFrameNumbers('greenEnemy', { start: 0, end: 2 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        // se crea la animacion "fly" con el sprite del enemy White
+        this.anims.create({
+            key: 'fly-whiteEnemy',
+            frames: this.anims.generateFrameNumbers('whiteEnemy', { start: 0, end: 2 }),
             frameRate: 10,
             repeat: -1
         });
@@ -49,26 +58,72 @@ export default class Game extends Phaser.Scene {
 
         /*
             Los enemigos son muchos, por lo que vamos a utilizar un grupo para tenerlos juntos
+            Vamos a tener enemigos kamikazes (enemies) y enemigos que disparan (shooters)
         */
         this.enemies = this.physics.add.group();
         this.enemies.createMultiple({
             classType: Phaser.Physics.Arcade.Sprite,
             key: 'greenEnemy',
             frame: 0,
-            visible: true,
-            active: true,
-            repeat: 50,
+            visible: false,
+            active: false,
+            repeat: 5,
             setXY: {
                 x: 400,
                 y: 300,
             }
         });
-        console.log(this.enemies.children.entries.length);
-        console.log(this.enemies.children);
+        // console.log(this.enemies.children.entries.length);
+        // console.log(this.enemies.children);
 
         this.enemies.children.entries.forEach((enemy) => {
-            enemy.play('fly-greenEnemy');
+            enemy.data = {
+                reward: 100,
+                dropRate: 0.3,
+                health: 2,
+            }
+            enemy.setCollideWorldBounds(true);
+            enemy.body.onWorldBounds = true;
+            enemy.body.world.on('worldbounds', function (body) {
+                if (body.gameObject === this) {
+                    this.setActive(false);
+                    this.setVisible(false);
+                }
+            }, enemy);
         });
+
+
+        this.shooters = this.physics.add.group();
+        this.shooters.createMultiple({
+            classType: Phaser.Physics.Arcade.Sprite,
+            key: 'whiteEnemy',
+            frame: 0,
+            visible: false,
+            active: false,
+            repeat: 5,
+            setXY: {
+                x: 400,
+                y: 300,
+            }
+        });
+
+        this.shooters.children.entries.forEach((shooter) => {
+            shooter.data = {
+                reward: 400,
+                dropRate: 0.5,
+                health: 5,
+            }
+            shooter.setCollideWorldBounds(true);
+            shooter.body.onWorldBounds = true;
+            shooter.body.world.on('worldbounds', function (body) {
+                if (body.gameObject === this) {
+                    this.setActive(false);
+                    this.setVisible(false);
+                }
+            }, shooter);
+        });
+
+
 
         /*
             Los enemigos son muchos y sus bullets mas, por lo que vamos a utilizar un grupo para tenerlas
@@ -79,12 +134,22 @@ export default class Game extends Phaser.Scene {
             key: 'enemyBullet',
             frame: 0,
             visible: false,
-            active: true,
+            active: false,
             repeat: 100,
             setXY: {
                 x: 600,
                 y: 300,
             }
+        });
+        this.enemiesBullets.children.entries.forEach((bullet) => {
+            bullet.setCollideWorldBounds(true);
+            bullet.body.onWorldBounds = true;
+            bullet.body.world.on('worldbounds', function (body) {
+                if (body.gameObject === this) {
+                    this.setActive(false);
+                    this.setVisible(false);
+                }
+            }, bullet);
         });
 
         /*
@@ -132,6 +197,7 @@ export default class Game extends Phaser.Scene {
 
         this.cursors = this.input.keyboard.createCursorKeys(); // Permite capturar los eventos del teclado
 
+        this.enemyManager = new EnemyManager(this);
     }
 
     /*
@@ -172,6 +238,10 @@ export default class Game extends Phaser.Scene {
                 this.player.fire();
             }
         }
+
+        
+        this.enemyManager.spawn();
+        this.enemyManager.fire();
     }
 
 }
